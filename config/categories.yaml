@@ -1,0 +1,479 @@
+# Transaction categorization rules
+# Each category contains a list of keywords matched case-insensitively
+# against the transaction description. First match wins.
+
+# Monthly spending budgets — edit these to match your goals.
+# The dashboard will show a progress bar for each category.
+# Remove this section or leave it empty to disable budget tracking.
+budgets:
+  Fast Food:     200
+  Groceries:     350
+  Gas:           150
+  Dining:        120
+  Subscriptions:  80
+  Shopping:      200
+  Entertainment:  60
+  Personal Care:  60
+  GF Tax:        150
+  Gaming:         40
+
+categories:
+
+  Income:
+    - payroll
+    - direct dep
+    - direct deposit
+    - salary
+    - paycheck
+    - adp
+    - gusto
+    - paychex
+    - venmo payment
+    - zelle credit
+    - dividend
+    - interest earned
+    - interest paid
+    - monthly interest
+    - tax refund
+    - irs
+    - cash reward
+    # Exclude "refund" and "reimbursement" from here if they come from stores
+    # — store refunds are better caught by their store category
+
+  Transfer:
+    - zelle
+    - venmo
+    - paypal transfer
+    - wire transfer
+    - bank transfer
+    - atm withdrawal
+    - atm deposit
+    - online transfer
+    # Capital One internal transfers between own accounts
+    - deposit from 360
+    - withdrawal to 360
+    - deposit from 360 performance
+    - withdrawal to 360 performance
+    - deposit from 360 checking
+    - withdrawal to 360 checking
+    # Cash App inter-account (belt-and-suspenders alongside bank_category check)
+    - cash app cash out
+    - cash app add cash
+    # Catches checking-side Cash App entries like "Debit Card Purchase - CASH APP CASH APP"
+    # and "Deposit from Cash App" / "Withdrawal from Cash App"
+    - cash app
+    # Failed/pre-auth holds that should be excluded from expenses
+    - payless fuel
+    # Cash App cashback rewards show as negative — exclude from expense calculations
+    - cash reward
+    # Credit card payments (debt payment, not a real expense)
+    - crcardpmt
+    - credit crd autopay
+    - credit crd epay
+    - amz_storecrd_pmt
+    - amazon corp syf
+    - apple cash balance add
+    # Savings bucket inside Cash App
+    - savings
+
+  GF Tax:
+    - calleigh
+
+  Brother:
+    - o o
+
+  Mom / Car:
+    - volkswagen
+    - mia moody
+    - mom
+
+  Groceries:
+    - walmart
+    - wal-mart
+    - wm supercenter
+    - wm super
+    - heb
+    - h-e-b
+    - kroger
+    - safeway
+    - albertsons
+    - publix
+    - meijer
+    - wegmans
+    - sprouts
+    - whole foods
+    - trader joe
+    - aldi
+    - lidl
+    - food lion
+    - giant food
+    - stop & shop
+    - harris teeter
+    - winco
+    - costco
+    - sam's club
+    - bj's wholesale
+    - market basket
+
+  Fast Food:
+    - mcdonald
+    - mcdonalds
+    - wendy's
+    - wendys
+    - burger king
+    - chick-fil-a
+    - chick fil a
+    - popeyes
+    - kfc
+    - taco bell
+    - subway
+    - sonic drive
+    - jack in the box
+    - whataburger
+    - five guys
+    - cookout
+    - cook out
+    - culver
+    - wingstop
+    - raising cane
+    - freddy's
+    - freddys
+    - checkers
+    - in-n-out
+    - in n out
+    - dairy queen
+    - wienerschnitzel
+    - zaxby
+    - golden chick
+    - chipotle
+    - domino
+    - pizza hut
+    - papa john
+    - little caesar
+    - church's chicken
+    - panda express
+    - automatic chef
+    - canteen
+    - doordash
+    - uber eats
+
+  Dining:
+    - restaurant
+    - cafe
+    - coffee
+    - pizza
+    - burger
+    - taco
+    - sushi
+    - diner
+    - grill
+    - steakhouse
+    - starbucks
+    - dunkin
+    - tim horton
+    - dutch bros
+    - peet's
+    - grubhub
+    - postmates
+    - instacart restaurant
+    - seamless
+    - panera
+    - olive garden
+    - cheddar
+    - breakfast place
+    - our breakfast
+    - raising roll
+    - ara baylor
+    - sugar spice
+    - taquisa
+    - wingstop
+    - breadbuilds
+
+  Gas:
+    - chevron
+    - shell
+    - bp
+    - exxon
+    - mobil
+    - marathon
+    - sunoco
+    - circle k
+    - wawa
+    - speedway
+    - kwik trip
+    - quiktrip
+    - casey's
+    - pilot
+    - flying j
+    - love's travel
+    - fuel
+    - gasoline
+    - gas station
+    - cefco
+    - qt 7903
+    - speight food mart
+
+  Subscriptions:
+    - netflix
+    - hulu
+    - disney+
+    - disneyplus
+    - hbo max
+    - max streaming
+    - amazon prime
+    - amazon video
+    - apple tv
+    - peacock
+    - paramount+
+    - paramount plus
+    - sling tv
+    - youtube premium
+    - spotify
+    - apple music
+    - pandora
+    - tidal
+    - deezer
+    - audible
+    - kindle unlimited
+    - adobe
+    - microsoft 365
+    - office 365
+    - google one
+    - dropbox
+    - icloud
+    - lastpass
+    - 1password
+    - nordvpn
+    - expressvpn
+    - nytimes
+    - wall street journal
+    - wsj
+    - washington post
+    - claude.ai
+    - openai
+    - chatgpt
+    - discord
+    - discord nitro
+    - roblox
+    - riot
+    - microsoft game pass
+    - pc game pass
+    - tebex
+    - cloudflare
+    - quizlet
+    - apple com bill
+    - apple.com/bill
+    - microsoft*pc game
+    - gym membership
+    - planet fitness
+    - anytime fitness
+    - orange theory
+    - orangetheory
+    - peloton
+    - beachbody
+    - masterclass
+
+  Shopping:
+    - amazon
+    - target
+    - ebay
+    - etsy
+    - best buy
+    - apple store
+    - apple.com
+    - home depot
+    - lowe's
+    - lowes
+    - ikea
+    - wayfair
+    - overstock
+    - chewy
+    - petco
+    - petsmart
+    - nordstrom
+    - macy's
+    - macys
+    - jcpenney
+    - kohls
+    - kohl's
+    - gap
+    - old navy
+    - h&m
+    - zara
+    - uniqlo
+    - tj maxx
+    - tjmaxx
+    - marshalls
+    - ross
+    - dollar general
+    - dollar tree
+    - five below
+    - bath body works
+    - sephora
+    - ulta beauty
+    - tiktok shop
+    - tiktok
+    - glorious pc
+    - cdkeys
+    - g2a
+    - game closet
+    - amzn mktp
+
+  Gaming:
+    - steam
+    - playstation
+    - xbox live
+    - nintendo
+    - apple arcade
+    - google play
+    - riot games
+    - roblox
+    - discord nitro
+    - game pass
+    - tebex
+    - breadbuilds
+
+  Entertainment:
+    - movie
+    - cinema
+    - amc theatre
+    - regal cinema
+    - fandango
+    - concert
+    - ticketmaster
+    - stubhub
+    - eventbrite
+    - bowling
+    - mini golf
+    - escape room
+    - arcade
+    - dave & buster
+    - topgolf
+    - museum
+    - zoo
+    - aquarium
+    - theme park
+    - amc 9640
+    - amc online
+
+  Personal Care:
+    - malana brown
+    - beauty elements
+    - the t creations
+    - hair
+    - barber
+    - salon
+    - nail
+    - spa
+    - kwiker sticker
+    - tl flowers
+    - reeds flowers
+
+  Health:
+    - pharmacy
+    - cvs
+    - walgreens
+    - rite aid
+    - doctor
+    - dentist
+    - optometrist
+    - vision
+    - medical
+    - clinic
+    - hospital
+    - urgent care
+    - health insurance
+    - copay
+    - prescription
+    - lab corp
+    - quest diagnostics
+    - health plan
+
+  Transportation:
+    - uber
+    - lyft
+    - taxi
+    - metro
+    - subway fare
+    - amtrak
+    - greyhound
+    - transit
+    - bus pass
+    - parking
+    - toll
+    - ezpass
+    - fastrak
+    - car wash
+    - jiffy lube
+    - firestone
+    - pep boys
+    - auto zone
+    - autozone
+    - o'reilly auto
+    - advance auto
+
+  Utilities:
+    - electric
+    - electricity
+    - natural gas
+    - water bill
+    - sewer
+    - trash
+    - garbage
+    - comcast
+    - xfinity
+    - spectrum
+    - cox communications
+    - at&t
+    - att payment
+    - verizon
+    - t-mobile
+    - tmobile
+    - sprint
+    - centurylink
+    - lumen
+    - frontier comm
+    - optimum
+    - consolidated comm
+    - internet service
+    - cable bill
+
+  Education:
+    - tuition
+    - student loan
+    - college
+    - university
+    - udemy
+    - coursera
+    - skillshare
+    - linkedin learning
+    - pluralsight
+    - book
+    - textbook
+    - chegg
+    - school supply
+    - innovative learning
+    - baylor
+    - campus rec
+
+  Insurance:
+    - insurance
+    - geico
+    - state farm
+    - allstate
+    - progressive
+    - usaa
+    - farmers insurance
+    - nationwide
+    - travelers ins
+    - liberty mutual
+
+  Housing:
+    - rent
+    - mortgage
+    - property tax
+    - hoa
+    - homeowner
+    - renter's insurance
+    - maintenance
+    - 720 e spring valley

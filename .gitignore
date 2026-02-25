@@ -1,0 +1,22 @@
+# Virtual environment
+.venv/
+venv/
+env/
+
+# Generated output (contains real financial data)
+output/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Real bank exports — never commit these
+data/*.csv
+!data/sample_transactions.csv
+
+# OS
+.DS_Store
+Thumbs.db
