@@ -525,7 +525,7 @@ def generate_html_dashboard(results: dict, output_path: Path) -> None:
 </head>
 <body>
 <header>
-  <pre class="hdr-ascii">⠀⠀  ⢀⡴⠁⠀⠀⣿⡏⠀⠀⠱⣄
+  <pre class="hdr-ascii">⠀⠀⠀⠀⢀⡴⠁⠀⠀⣿⡏⠀⠀⠱⣄
 ⠀⠀⢀⣴⡟⠁⠀⠀⠀⣿⡇⠀⠀⠀⠙⣷⣄
 ⠀⠀⠙⢿⣷⣄⠀⠀⠀⣿⡇⠀⠀⢀⣴⣿⠋
 ⠀⠀⠀⠀⠙⢿⣷⣄⠀⢻⡇⢀⣴⣿⠋
@@ -537,7 +537,7 @@ def generate_html_dashboard(results: dict, output_path: Path) -> None:
 ⠀⠀⠈⠻⣿⣦⡀⠀⠀⢸⣿⠀⠀⢀⣼⣿⠏
 ⠀⠀⠀⠀⠈⠻⣿⣦⡀⢸⣿⠀⣴⣿⠟⠁
 ⠀⠀⠀⠀⠀⠀⠈⠻⣿⣾⣿⣾⡿⠃⠀
-⠀⠀ ⠀⠀⠀⠀⠀⠈⠻⡿⠋</pre>
+⠀⠀⠀⠀⠀⠀⠀⠀⠈⠻⡿⠋</pre>
   <div class="hdr-text">
     <h1>Financial Dashboard</h1>
     <p>Personal spending &amp; income analysis</p>
