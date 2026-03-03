@@ -17,6 +17,12 @@ __pycache__/
 data/*.csv
 !data/sample_transactions.csv
 
+# Web app sessions (contain real financial data — never commit)
+sessions/
+
+# Environment secrets
+.env
+
 # OS
 .DS_Store
 Thumbs.db

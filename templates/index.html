@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Financial Dashboard</title>
+  <style>
+    :root {
+      --bg:   #080808;
+      --s1:   #0e0e0e;
+      --s2:   #141414;
+      --s3:   #1a1a1a;
+      --bd:   #252525;
+      --bdb:  #3a3a3a;
+      --txt:  #e0dcd8;
+      --txt2: #808080;
+      --txt3: #4a4a4a;
+      --red:  #c03030;
+      --green:#38a858;
+      --r:    12px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { font-size: 14px; scrollbar-color: var(--bd) var(--bg); scrollbar-width: thin; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--txt);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── Header ── */
+    header {
+      background: linear-gradient(135deg, #080808 0%, #0d0d0d 60%, #090909 100%);
+      padding: 18px 28px;
+      border-bottom: 1px solid var(--bd);
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      position: relative;
+      overflow: hidden;
+    }
+    header::before {
+      content: '';
+      position: absolute; inset: 0; pointer-events: none;
+      background:
+        radial-gradient(ellipse 700px 200px at 8% 60%,  rgba(192,48,48,.04),  transparent),
+        radial-gradient(ellipse 500px 160px at 92% 20%, rgba(140,30,30,.03), transparent);
+    }
+    .hdr-ascii {
+      font-family: 'Courier New', monospace;
+      font-size: 6.5px; line-height: 1.1;
+      color: #6b1212; white-space: pre; flex-shrink: 0;
+      filter: drop-shadow(0 0 8px rgba(160,20,20,.35));
+    }
+    .hdr-title { font-size: 1.25rem; font-weight: 800; color: #fff; letter-spacing: -.02em; }
+    .hdr-sub   { font-size: .75rem; color: var(--txt2); margin-top: 2px; }
+
+    /* ── Main ── */
+    main {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 20px;
+    }
+
+    .card {
+      width: 100%;
+      max-width: 560px;
+      background: var(--s1);
+      border: 1px solid var(--bd);
+      border-radius: var(--r);
+      padding: 32px;
+    }
+
+    .card-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+    .card-sub {
+      font-size: .8rem;
+      color: var(--txt2);
+      margin-bottom: 24px;
+    }
+
+    /* ── Error banner ── */
+    .error-banner {
+      background: rgba(192,48,48,.12);
+      border: 1px solid rgba(192,48,48,.4);
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: .82rem;
+      color: #f08080;
+      margin-bottom: 20px;
+    }
+
+    /* ── Drop zone ── */
+    .drop-zone {
+      border: 2px dashed var(--bdb);
+      border-radius: var(--r);
+      padding: 36px 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color .2s, background .2s;
+      position: relative;
+      margin-bottom: 20px;
+    }
+    .drop-zone:hover,
+    .drop-zone.dragover {
+      border-color: var(--red);
+      background: rgba(192,48,48,.04);
+    }
+    .drop-icon {
+      font-size: 2rem;
+      margin-bottom: 10px;
+      opacity: .6;
+    }
+    .drop-title {
+      font-size: .95rem;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+    .drop-hint {
+      font-size: .78rem;
+      color: var(--txt2);
+    }
+    #fileInput { display: none; }
+
+    /* ── File list ── */
+    .file-list {
+      margin-top: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      text-align: left;
+    }
+    .file-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--s2);
+      border: 1px solid var(--bd);
+      border-radius: 8px;
+      padding: 7px 11px;
+      font-size: .8rem;
+    }
+    .file-item .fi-name { flex: 1; color: var(--txt); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .file-item .fi-size { color: var(--txt2); flex-shrink: 0; }
+    .file-remove {
+      background: none; border: none; color: var(--txt3); cursor: pointer;
+      font-size: .9rem; line-height: 1; padding: 0 2px;
+      transition: color .15s;
+    }
+    .file-remove:hover { color: var(--red); }
+
+    /* ── Options ── */
+    details.options {
+      margin-bottom: 20px;
+    }
+    details.options summary {
+      font-size: .82rem;
+      color: var(--txt2);
+      cursor: pointer;
+      user-select: none;
+      padding: 6px 0;
+      list-style: none;
+    }
+    details.options summary::before {
+      content: '▶ ';
+      font-size: .7rem;
+    }
+    details[open].options summary::before {
+      content: '▼ ';
+    }
+    .opts-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 12px;
+      margin-top: 12px;
+    }
+    .opts-grid label {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      font-size: .78rem;
+      color: var(--txt2);
+    }
+    .opts-grid input {
+      background: var(--s2);
+      border: 1px solid var(--bd);
+      border-radius: 7px;
+      color: var(--txt);
+      padding: 7px 10px;
+      font-size: .82rem;
+      outline: none;
+      transition: border-color .2s;
+    }
+    .opts-grid input:focus { border-color: var(--bdb); }
+
+    /* ── Submit button ── */
+    .btn-submit {
+      width: 100%;
+      background: var(--red);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 12px;
+      font-size: .9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity .2s, transform .1s;
+      position: relative;
+      overflow: hidden;
+    }
+    .btn-submit:hover   { opacity: .88; }
+    .btn-submit:active  { transform: scale(.98); }
+    .btn-submit:disabled { opacity: .45; cursor: not-allowed; }
+
+    /* Loading spinner overlay */
+    .btn-submit .spinner {
+      display: none;
+      width: 16px; height: 16px;
+      border: 2px solid rgba(255,255,255,.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+      position: absolute;
+      right: 16px;
+      top: 50%; transform: translateY(-50%);
+    }
+    .btn-submit.loading .spinner { display: block; }
+    .btn-submit.loading .btn-label { opacity: .6; }
+
+    @keyframes spin { to { transform: translateY(-50%) rotate(360deg); } }
+
+    /* ── Bank badges ── */
+    .banks {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 20px;
+    }
+    .bank-badge {
+      font-size: .72rem;
+      color: var(--txt2);
+      background: var(--s2);
+      border: 1px solid var(--bd);
+      border-radius: 99px;
+      padding: 3px 10px;
+    }
+
+    /* ── Privacy note ── */
+    .privacy {
+      margin-top: 16px;
+      font-size: .75rem;
+      color: var(--txt3);
+      text-align: center;
+      line-height: 1.5;
+    }
+    .privacy a { color: var(--txt2); }
+
+    /* ── Footer ── */
+    footer {
+      text-align: center;
+      padding: 16px;
+      font-size: .72rem;
+      color: var(--txt3);
+      border-top: 1px solid var(--bd);
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <pre class="hdr-ascii">
+ ___
+|$ $|
+|___|</pre>
+  <div>
+    <div class="hdr-title">Financial Dashboard</div>
+    <div class="hdr-sub">Upload your bank exports · get your full dashboard instantly</div>
+  </div>
+</header>
+
+<main>
+  <div class="card">
+    <div class="card-title">Upload Bank Exports</div>
+    <div class="card-sub">Drop one or more CSV files from your bank — we'll handle the rest.</div>
+
+    {% if error %}
+    <div class="error-banner">{{ error }}</div>
+    {% endif %}
+
+    <form id="uploadForm" action="/upload" method="post" enctype="multipart/form-data">
+
+      <div class="drop-zone" id="dropZone">
+        <div class="drop-icon">📂</div>
+        <div class="drop-title">Drop CSV files here</div>
+        <div class="drop-hint">or click to browse</div>
+        <input type="file" name="csv_files" id="fileInput" multiple accept=".csv">
+        <div class="file-list" id="fileList"></div>
+      </div>
+
+      <details class="options">
+        <summary>Advanced options</summary>
+        <div class="opts-grid">
+          <label>
+            Starting balance
+            <input type="number" name="balance" placeholder="0.00" step="0.01" min="0">
+          </label>
+          <label>
+            From (month)
+            <input type="month" name="start">
+          </label>
+          <label>
+            To (month)
+            <input type="month" name="end">
+          </label>
+        </div>
+      </details>
+
+      <button type="submit" class="btn-submit" id="submitBtn">
+        <span class="btn-label">Generate My Dashboard</span>
+        <span class="spinner"></span>
+      </button>
+    </form>
+
+    <div class="banks">
+      <span class="bank-badge">Capital One</span>
+      <span class="bank-badge">Cash App</span>
+      <span class="bank-badge">Chase</span>
+      <span class="bank-badge">Bank of America</span>
+      <span class="bank-badge">Wells Fargo</span>
+      <span class="bank-badge">Generic CSV</span>
+    </div>
+
+    <div class="privacy">
+      Your data is processed privately on our server and automatically deleted after 24 hours.<br>
+      Nothing is shared with third parties.
+    </div>
+  </div>
+</main>
+
+<footer>Financial Dashboard &mdash; built by willcoded0</footer>
+
+<script>
+  const dropZone  = document.getElementById("dropZone");
+  const fileInput = document.getElementById("fileInput");
+  const fileList  = document.getElementById("fileList");
+  const submitBtn = document.getElementById("submitBtn");
+  const form      = document.getElementById("uploadForm");
+
+  let selectedFiles = [];
+
+  // Open file picker on zone click (but not remove-button clicks)
+  dropZone.addEventListener("click", e => {
+    if (!e.target.classList.contains("file-remove")) fileInput.click();
+  });
+
+  // Drag & drop
+  dropZone.addEventListener("dragover",  e => { e.preventDefault(); dropZone.classList.add("dragover"); });
+  dropZone.addEventListener("dragleave", () => dropZone.classList.remove("dragover"));
+  dropZone.addEventListener("drop", e => {
+    e.preventDefault();
+    dropZone.classList.remove("dragover");
+    addFiles([...e.dataTransfer.files]);
+  });
+
+  fileInput.addEventListener("change", () => {
+    addFiles([...fileInput.files]);
+    fileInput.value = "";
+  });
+
+  function formatSize(bytes) {
+    if (bytes < 1024)       return bytes + " B";
+    if (bytes < 1048576)    return (bytes / 1024).toFixed(1) + " KB";
+    return (bytes / 1048576).toFixed(1) + " MB";
+  }
+
+  function addFiles(newFiles) {
+    newFiles.forEach(f => {
+      if (!f.name.toLowerCase().endsWith(".csv")) return;
+      if (!selectedFiles.find(x => x.name === f.name && x.size === f.size))
+        selectedFiles.push(f);
+    });
+    renderFileList();
+  }
+
+  function removeFile(idx) {
+    selectedFiles.splice(idx, 1);
+    renderFileList();
+  }
+
+  function renderFileList() {
+    fileList.innerHTML = selectedFiles.map((f, i) => `
+      <div class="file-item">
+        <span class="fi-name">📄 ${f.name}</span>
+        <span class="fi-size">${formatSize(f.size)}</span>
+        <button type="button" class="file-remove" onclick="removeFile(${i})" title="Remove">✕</button>
+      </div>
+    `).join("");
+  }
+
+  // On submit: build a real FormData with the selectedFiles array
+  form.addEventListener("submit", e => {
+    e.preventDefault();
+    if (selectedFiles.length === 0) {
+      alert("Please add at least one CSV file.");
+      return;
+    }
+
+    const fd = new FormData(form);
+    // Remove the empty fileInput files and add selected
+    fd.delete("csv_files");
+    selectedFiles.forEach(f => fd.append("csv_files", f));
+
+    submitBtn.disabled = true;
+    submitBtn.classList.add("loading");
+    submitBtn.querySelector(".btn-label").textContent = "Processing…";
+
+    fetch("/upload", { method: "POST", body: fd })
+      .then(res => {
+        if (res.redirected) {
+          window.location.href = res.url;
+        } else {
+          return res.text().then(html => {
+            document.open(); document.write(html); document.close();
+          });
+        }
+      })
+      .catch(() => {
+        submitBtn.disabled = false;
+        submitBtn.classList.remove("loading");
+        submitBtn.querySelector(".btn-label").textContent = "Generate My Dashboard";
+        alert("Upload failed. Please try again.");
+      });
+  });
+</script>
+
+</body>
+</html>

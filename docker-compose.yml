@@ -1,0 +1,22 @@
+services:
+  dashboard:
+    build: .
+    container_name: financial-dashboard
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    volumes:
+      # Persist sessions across container restarts
+      - ./sessions:/app/sessions
+    environment:
+      # Generate a strong random key: python -c "import secrets; print(secrets.token_hex(32))"
+      - SECRET_KEY=${SECRET_KEY:-change-me-in-production}
+      # Your hosted Ollama instance
+      - OLLAMA_HOST=${OLLAMA_HOST:-https://ai.batmap.win}
+      - OLLAMA_MODEL=${OLLAMA_MODEL:-qwen2.5:3b}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5000/')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
