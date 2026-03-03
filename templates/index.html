@@ -4,6 +4,7 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Financial Dashboard</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%23080808'/><text x='16' y='24' font-family='Arial,sans-serif' font-size='22' font-weight='900' text-anchor='middle' fill='%23c03030'>$</text></svg>">
   <style>
     :root {
       --bg:   #080808;
@@ -424,21 +425,39 @@
     submitBtn.classList.add("loading");
     submitBtn.querySelector(".btn-label").textContent = "Processing…";
 
+    function resetBtn() {
+      submitBtn.disabled = false;
+      submitBtn.classList.remove("loading");
+      submitBtn.querySelector(".btn-label").textContent = "Generate My Dashboard";
+    }
+
+    function showError(msg) {
+      let banner = document.querySelector(".error-banner");
+      if (!banner) {
+        banner = document.createElement("div");
+        banner.className = "error-banner";
+        form.parentNode.insertBefore(banner, form);
+      }
+      banner.textContent = msg;
+    }
+
     fetch("/upload", { method: "POST", body: fd })
       .then(res => {
         if (res.redirected) {
           window.location.href = res.url;
         } else {
           return res.text().then(html => {
-            document.open(); document.write(html); document.close();
+            const tmp = document.createElement("div");
+            tmp.innerHTML = html;
+            const errEl = tmp.querySelector(".error-banner");
+            showError(errEl ? errEl.textContent.trim() : "Processing failed. Please try again.");
+            resetBtn();
           });
         }
       })
       .catch(() => {
-        submitBtn.disabled = false;
-        submitBtn.classList.remove("loading");
-        submitBtn.querySelector(".btn-label").textContent = "Generate My Dashboard";
-        alert("Upload failed. Please try again.");
+        showError("Upload failed — check your connection and try again.");
+        resetBtn();
       });
   });
 </script>
