@@ -3,3 +3,4 @@ pyyaml>=6.0
 numpy>=1.24.0
 flask>=3.0.0
 requests>=2.31.0
+plaid-python>=14.0.0
