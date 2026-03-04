@@ -988,12 +988,57 @@ function getQueryContext(query) {{
 
   if (!unique.length) return "";
 
-  // Format as a compact table
+  // Pre-compute totals so the model never has to do arithmetic
+  const expenses  = unique.filter(t => t.amount < 0);
+  const income    = unique.filter(t => t.amount > 0);
+  const totalSpent  = expenses.reduce((s, t) => s + Math.abs(t.amount), 0);
+  const totalIncome = income.reduce((s,  t) => s + t.amount, 0);
+
+  // Per-merchant breakdown
+  const byMerchant = {{}};
+  expenses.forEach(t => {{
+    byMerchant[t.merchant] = (byMerchant[t.merchant] || 0) + Math.abs(t.amount);
+  }});
+  const merchantLines = Object.entries(byMerchant)
+    .sort((a,b) => b[1]-a[1])
+    .map(([m,v]) => `  ${{m}}: $${{v.toFixed(2)}}`)
+    .join("\\n");
+
+  // Per-category breakdown
+  const byCat = {{}};
+  expenses.forEach(t => {{
+    byCat[t.category] = (byCat[t.category] || 0) + Math.abs(t.amount);
+  }});
+  const catLines = Object.entries(byCat)
+    .sort((a,b) => b[1]-a[1])
+    .map(([c,v]) => `  ${{c}}: $${{v.toFixed(2)}}`)
+    .join("\\n");
+
+  // Per-month breakdown
+  const byMonth = {{}};
+  expenses.forEach(t => {{
+    const ym = t.date.substring(0,7);
+    byMonth[ym] = (byMonth[ym] || 0) + Math.abs(t.amount);
+  }});
+  const monthLines = Object.entries(byMonth)
+    .sort((a,b) => a[0].localeCompare(b[0]))
+    .map(([m,v]) => `  ${{m}}: $${{v.toFixed(2)}}`)
+    .join("\\n");
+
+  // Full transaction list
   const rows = unique
     .sort((a,b) => b.date.localeCompare(a.date))
     .map(t => `  ${{t.date}} | ${{t.merchant.substring(0,42).padEnd(42)}} | ${{t.category.padEnd(14)}} | ${{t.amount<0?"-":"+"}}\$${{Math.abs(t.amount).toFixed(2)}}`)
     .join("\\n");
-  return `\\n\\n[RELEVANT TRANSACTIONS (${{unique.length}} matched)]\\n${{rows}}`;
+
+  let summary = `\\n\\n[PRE-COMPUTED TOTALS — use these exact numbers, do not recalculate]`;
+  if (totalSpent  > 0) summary += `\\nTotal spent:  $${{totalSpent.toFixed(2)}} across ${{expenses.length}} transaction(s)`;
+  if (totalIncome > 0) summary += `\\nTotal income: $${{totalIncome.toFixed(2)}} across ${{income.length}} transaction(s)`;
+  if (Object.keys(byMerchant).length > 1) summary += `\\nBy merchant:\\n${{merchantLines}}`;
+  if (Object.keys(byCat).length  > 1)     summary += `\\nBy category:\\n${{catLines}}`;
+  if (Object.keys(byMonth).length > 1)     summary += `\\nBy month:\\n${{monthLines}}`;
+  summary += `\\n\\n[MATCHING TRANSACTIONS (${{unique.length}})]\\n${{rows}}`;
+  return summary;
 }}
 
 async function sendMessage() {{
