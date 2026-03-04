@@ -4,9 +4,6 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Financial Dashboard</title>
-  {% if plaid_enabled %}
-  <script src="https://cdn.plaid.com/link/v2/stable/link-initialize.js"></script>
-  {% endif %}
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%23080808'/><text x='16' y='24' font-family='Arial,sans-serif' font-size='22' font-weight='900' text-anchor='middle' fill='%23c03030'>$</text></svg>">
   <style>
     :root {
@@ -295,62 +292,6 @@
       padding: 3px 10px;
     }
 
-    /* ── Plaid section ── */
-    .plaid-row {
-      display: flex;
-      gap: 10px;
-      align-items: stretch;
-    }
-    .btn-plaid {
-      flex: 1;
-      background: var(--s3);
-      color: var(--txt);
-      border: 1px solid var(--bdb);
-      border-radius: 8px;
-      padding: 11px 14px;
-      font-size: .88rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: border-color .2s, background .2s;
-      position: relative;
-      overflow: hidden;
-      text-align: left;
-    }
-    .btn-plaid:hover   { background: var(--s2); border-color: #555; }
-    .btn-plaid:disabled { opacity: .45; cursor: not-allowed; }
-    .btn-plaid .spinner {
-      display: none;
-      width: 14px; height: 14px;
-      border: 2px solid rgba(255,255,255,.3);
-      border-top-color: #fff;
-      border-radius: 50%;
-      animation: spin .7s linear infinite;
-      position: absolute;
-      right: 14px;
-      top: 50%; transform: translateY(-50%);
-    }
-    .btn-plaid.loading .spinner    { display: block; }
-    .btn-plaid.loading .btn-label  { opacity: .6; }
-    .plaid-days-select {
-      background: var(--s2);
-      border: 1px solid var(--bd);
-      border-radius: 8px;
-      color: var(--txt2);
-      padding: 0 12px;
-      font-size: .82rem;
-      outline: none;
-      cursor: pointer;
-      min-width: 110px;
-      transition: border-color .2s;
-    }
-    .plaid-days-select:focus { border-color: var(--bdb); }
-    .plaid-hint {
-      margin-top: 8px;
-      font-size: .75rem;
-      color: var(--txt3);
-      text-align: center;
-    }
-
     /* ── Privacy note ── */
     .privacy {
       margin-top: 16px;
@@ -426,25 +367,6 @@
         <span class="spinner"></span>
       </button>
     </form>
-
-    {% if plaid_enabled %}
-    <div class="divider"><span>or</span></div>
-    <div class="plaid-section">
-      <div class="plaid-row">
-        <button type="button" class="btn-plaid" id="plaidBtn" onclick="openPlaid()">
-          <span class="btn-label">Connect Bank with Plaid</span>
-          <span class="spinner"></span>
-        </button>
-        <select id="plaidDays" class="plaid-days-select">
-          <option value="90">3 months</option>
-          <option value="180" selected>6 months</option>
-          <option value="365">12 months</option>
-          <option value="730">24 months</option>
-        </select>
-      </div>
-      <div class="plaid-hint">Connect your bank directly — no CSV download needed</div>
-    </div>
-    {% endif %}
 
     <div class="divider"><span>or</span></div>
 
@@ -590,68 +512,6 @@
       });
   });
 
-  // ── Plaid ───────────────────────────────────────────────────────────────────
-  {% if plaid_enabled %}
-  async function openPlaid() {
-    const btn = document.getElementById("plaidBtn");
-    btn.disabled = true;
-    btn.classList.add("loading");
-    btn.querySelector(".btn-label").textContent = "Connecting…";
-
-    function resetPlaidBtn() {
-      btn.disabled = false;
-      btn.classList.remove("loading");
-      btn.querySelector(".btn-label").textContent = "Connect Bank with Plaid";
-    }
-
-    let link_token;
-    try {
-      const r = await fetch("/api/plaid/link_token", { method: "POST" });
-      const data = await r.json();
-      if (data.error || !data.link_token) {
-        showError(data.error || "Failed to initialize bank connection.");
-        resetPlaidBtn();
-        return;
-      }
-      link_token = data.link_token;
-    } catch (e) {
-      showError("Could not reach the server. Please try again.");
-      resetPlaidBtn();
-      return;
-    }
-
-    resetPlaidBtn(); // reset before opening the modal
-
-    const handler = Plaid.create({
-      token: link_token,
-      onSuccess: async (public_token, metadata) => {
-        btn.disabled = true;
-        btn.classList.add("loading");
-        btn.querySelector(".btn-label").textContent = "Importing transactions…";
-
-        const daysBack = parseInt(document.getElementById("plaidDays").value) || 180;
-        try {
-          const r = await fetch("/api/plaid/connect", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ public_token, days_back: daysBack })
-          });
-          const result = await r.json();
-          if (result.error) { showError(result.error); resetPlaidBtn(); return; }
-          window.location.href = result.redirect;
-        } catch (e) {
-          showError("Failed to import transactions. Please try again.");
-          resetPlaidBtn();
-        }
-      },
-      onExit: (err) => {
-        if (err) showError(err.display_message || err.error_message || "Bank connection was cancelled.");
-      }
-    });
-
-    handler.open();
-  }
-  {% endif %}
 </script>
 
 </body>
