@@ -240,6 +240,42 @@
 
     @keyframes spin { to { transform: translateY(-50%) rotate(360deg); } }
 
+    /* ── Divider ── */
+    .divider {
+      display: flex; align-items: center; gap: 12px;
+      margin: 16px 0 14px;
+      color: var(--txt3); font-size: .75rem;
+    }
+    .divider::before, .divider::after {
+      content: ''; flex: 1; height: 1px; background: var(--bd);
+    }
+
+    /* ── Demo button ── */
+    .btn-demo {
+      display: block; width: 100%; text-align: center;
+      background: var(--s2);
+      color: var(--txt2);
+      border: 1px solid var(--bd);
+      border-radius: 8px;
+      padding: 11px;
+      font-size: .88rem; font-weight: 500;
+      text-decoration: none;
+      transition: border-color .2s, color .2s, background .2s;
+    }
+    .btn-demo:hover {
+      border-color: var(--bdb); color: var(--txt); background: var(--s3);
+    }
+
+    /* ── Sample hint ── */
+    .sample-hint {
+      margin-top: 10px;
+      text-align: center;
+      font-size: .75rem;
+      color: var(--txt3);
+    }
+    .sample-hint a { color: var(--txt2); text-decoration: none; }
+    .sample-hint a:hover { color: var(--txt); }
+
     /* ── Bank badges ── */
     .banks {
       display: flex;
@@ -332,6 +368,14 @@
       </button>
     </form>
 
+    <div class="divider"><span>or</span></div>
+
+    <a href="/demo" class="btn-demo" id="demoBtn">Try with sample data</a>
+
+    <div class="sample-hint">
+      Not sure about the format? <a href="/sample.csv">Download sample CSV</a>
+    </div>
+
     <div class="banks">
       <span class="bank-badge">Capital One</span>
       <span class="bank-badge">Cash App</span>
@@ -351,6 +395,13 @@
 <footer>Financial Dashboard &mdash; built by willcoded0</footer>
 
 <script>
+  // Demo button loading state
+  document.getElementById("demoBtn").addEventListener("click", function(e) {
+    this.textContent = "Loading demo…";
+    this.style.opacity = "0.5";
+    this.style.pointerEvents = "none";
+  });
+
   const dropZone  = document.getElementById("dropZone");
   const fileInput = document.getElementById("fileInput");
   const fileList  = document.getElementById("fileList");

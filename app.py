@@ -16,8 +16,10 @@ from pathlib import Path
 import requests
 import yaml
 from flask import (Flask, Response, abort, redirect, render_template,
-                   request, stream_with_context, url_for)
+                   request, send_file, stream_with_context, url_for)
 from werkzeug.utils import secure_filename
+
+SAMPLE_CSV = Path(__file__).parent / "data" / "sample_transactions.csv"
 
 # ---------------------------------------------------------------------------
 # Configuration
@@ -125,6 +127,63 @@ _cleanup_thread.start()
 @app.route("/")
 def index():
     return render_template("index.html")
+
+
+@app.route("/sample.csv")
+def sample_csv():
+    """Let users download the sample CSV to see the expected format."""
+    return send_file(SAMPLE_CSV, as_attachment=True, download_name="sample_transactions.csv")
+
+
+@app.route("/demo")
+def demo():
+    """Run the pipeline on the bundled sample data and redirect to the dashboard."""
+    session_id = str(uuid.uuid4())
+    session_dir = SESSIONS_DIR / session_id
+    data_dir    = session_dir / "data"
+    output_dir  = session_dir / "output"
+    data_dir.mkdir(parents=True)
+    output_dir.mkdir(parents=True)
+
+    try:
+        shutil.copy(SAMPLE_CSV, data_dir / "sample_transactions.csv")
+
+        from src.ingest    import load_directory
+        from src.transform import transform
+        from src.analyze   import analyze
+        from src.export    import export_csvs, generate_html_dashboard
+
+        df      = load_directory(data_dir)
+        df      = transform(df)
+        cat_path = Path(__file__).parent / "config" / "categories.yaml"
+        budgets: dict = {}
+        try:
+            with open(cat_path) as fh:
+                cfg = yaml.safe_load(fh)
+            budgets = {k: float(v) for k, v in (cfg.get("budgets") or {}).items()}
+        except Exception:
+            pass
+
+        results = analyze(df, starting_balance=0.0, budgets=budgets)
+        export_csvs(results, output_dir)
+        generate_html_dashboard(results, output_dir / "dashboard.html")
+
+        dash_path = output_dir / "dashboard.html"
+        html = dash_path.read_text(encoding="utf-8")
+        html = html.replace("http://localhost:11434/api/tags", "/api/ollama/tags")
+        html = html.replace("http://localhost:11434/api/chat", "/api/ollama/chat")
+        html = html.replace('model: "puck"', f'model: "{OLLAMA_MODEL}"')
+        html = html.replace(
+            "⚠ Can't reach Ollama. Make sure it's running: ollama serve",
+            "⚠ AI assistant is currently unavailable.",
+        )
+        dash_path.write_text(html, encoding="utf-8")
+
+    except Exception as e:
+        shutil.rmtree(session_dir, ignore_errors=True)
+        return render_template("index.html", error=f"Demo failed: {e}")
+
+    return redirect(url_for("dashboard", session_id=session_id))
 
 
 @app.route("/upload", methods=["POST"])
