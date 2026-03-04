@@ -292,6 +292,33 @@
       padding: 3px 10px;
     }
 
+    /* ── Processing view ── */
+    .proc-wrap { padding: 8px 0; }
+    .proc-title {
+      font-size: .95rem; font-weight: 600;
+      margin-bottom: 20px; color: var(--txt);
+    }
+    .proc-steps { display: flex; flex-direction: column; gap: 8px; }
+    .proc-step {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 14px;
+      border-radius: 8px;
+      background: var(--s2); border: 1px solid var(--bd);
+      font-size: .85rem; color: var(--txt3);
+      transition: color .3s, border-color .3s, background .3s;
+    }
+    .proc-step.active  { color: var(--txt); border-color: var(--bdb); background: var(--s3); }
+    .proc-step.done    { color: var(--green); border-color: rgba(56,168,88,.25); }
+    .proc-step .step-icon { width: 18px; text-align: center; flex-shrink: 0; }
+    .step-spinner {
+      width: 13px; height: 13px;
+      border: 2px solid rgba(255,255,255,.15);
+      border-top-color: var(--txt2);
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+      display: inline-block; vertical-align: middle;
+    }
+
     /* ── Privacy note ── */
     .privacy {
       margin-top: 16px;
@@ -327,6 +354,17 @@
 
 <main>
   <div class="card">
+
+    <!-- Processing view (shown during pipeline) -->
+    <div id="processingView" style="display:none">
+      <div class="proc-wrap">
+        <div class="proc-title">Building your dashboard…</div>
+        <div class="proc-steps" id="procSteps"></div>
+      </div>
+    </div>
+
+    <!-- Upload view (default) -->
+    <div id="uploadView">
     <div class="card-title">Upload Bank Exports</div>
     <div class="card-sub">Drop one or more CSV files from your bank — we'll handle the rest.</div>
 
@@ -389,6 +427,7 @@
       Your data is processed privately on our server and automatically deleted after 24 hours.<br>
       Nothing is shared with third parties.
     </div>
+    </div><!-- /uploadView -->
   </div>
 </main>
 
@@ -397,6 +436,10 @@
 <script>
   // ── Shared helpers ──────────────────────────────────────────────────────────
   function showError(msg) {
+    // Switch back to upload view if we're in processing view
+    document.getElementById("processingView").style.display = "none";
+    document.getElementById("uploadView").style.display = "block";
+
     const form = document.getElementById("uploadForm");
     let banner = document.querySelector(".error-banner");
     if (!banner) {
@@ -406,6 +449,11 @@
     }
     banner.textContent = msg;
     banner.scrollIntoView({ behavior: "smooth", block: "nearest" });
+
+    const submitBtn = document.getElementById("submitBtn");
+    submitBtn.disabled = false;
+    submitBtn.classList.remove("loading");
+    submitBtn.querySelector(".btn-label").textContent = "Generate My Dashboard";
   }
 
   // ── Demo button ─────────────────────────────────────────────────────────────
@@ -484,34 +532,77 @@
 
     submitBtn.disabled = true;
     submitBtn.classList.add("loading");
-    submitBtn.querySelector(".btn-label").textContent = "Processing…";
-
-    function resetBtn() {
-      submitBtn.disabled = false;
-      submitBtn.classList.remove("loading");
-      submitBtn.querySelector(".btn-label").textContent = "Generate My Dashboard";
-    }
+    submitBtn.querySelector(".btn-label").textContent = "Uploading…";
 
     fetch("/upload", { method: "POST", body: fd })
-      .then(res => {
-        if (res.redirected) {
-          window.location.href = res.url;
-        } else {
-          return res.text().then(html => {
-            const tmp = document.createElement("div");
-            tmp.innerHTML = html;
-            const errEl = tmp.querySelector(".error-banner");
-            showError(errEl ? errEl.textContent.trim() : "Processing failed. Please try again.");
-            resetBtn();
-          });
-        }
+      .then(r => r.json())
+      .then(data => {
+        if (data.error) { showError(data.error); return; }
+        startProgress(data.session_id);
       })
-      .catch(() => {
-        showError("Upload failed — check your connection and try again.");
-        resetBtn();
-      });
+      .catch(() => showError("Upload failed — check your connection and try again."));
   });
 
+  // ── SSE progress ────────────────────────────────────────────────────────────
+  const STEPS = [
+    "Reading your files",
+    "Categorizing transactions",
+    "Crunching the numbers",
+    "Building your dashboard",
+  ];
+
+  function startProgress(sessionId) {
+    // Swap to processing view
+    document.getElementById("uploadView").style.display = "none";
+    const pv = document.getElementById("processingView");
+    pv.style.display = "block";
+    document.getElementById("procSteps").innerHTML = STEPS.map((s, i) => `
+      <div class="proc-step" id="step-${i}">
+        <span class="step-icon">○</span>
+        <span>${s}</span>
+      </div>
+    `).join("");
+
+    let cur = -1;
+    const es = new EventSource(`/progress/${sessionId}`);
+
+    es.addEventListener("progress", () => {
+      if (cur >= 0) setStepDone(cur);
+      cur++;
+      setStepActive(cur);
+    });
+
+    es.addEventListener("done", ev => {
+      if (cur >= 0) setStepDone(cur);
+      es.close();
+      setTimeout(() => { window.location.href = ev.data; }, 500);
+    });
+
+    es.addEventListener("error", ev => {
+      es.close();
+      showError(ev.data || "Processing failed. Please try again.");
+    });
+
+    es.onerror = () => {
+      es.close();
+      showError("Connection lost during processing. Please try again.");
+    };
+  }
+
+  function setStepActive(i) {
+    const el = document.getElementById(`step-${i}`);
+    if (!el) return;
+    el.classList.add("active");
+    el.querySelector(".step-icon").innerHTML = '<span class="step-spinner"></span>';
+  }
+
+  function setStepDone(i) {
+    const el = document.getElementById(`step-${i}`);
+    if (!el) return;
+    el.classList.remove("active");
+    el.classList.add("done");
+    el.querySelector(".step-icon").textContent = "✓";
+  }
 </script>
 
 </body>

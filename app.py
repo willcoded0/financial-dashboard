@@ -7,6 +7,7 @@ proxies Ollama AI requests, and supports Plaid bank connection.
 
 import json
 import os
+import queue
 import shutil
 import threading
 import time
@@ -33,6 +34,9 @@ ALLOWED_EXTENSIONS  = {"csv"}
 MAX_UPLOAD_BYTES    = 50 * 1024 * 1024
 SESSION_TTL_SECONDS = 24 * 3600
 CLEANUP_INTERVAL    = 3600
+
+# Per-session SSE progress queues  { session_id: Queue }
+_progress_queues: dict = {}
 
 OLLAMA_HOST  = os.environ.get("OLLAMA_HOST",  "https://ai.batmap.win")
 OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", "qwen2.5:3b")
@@ -110,6 +114,12 @@ def _load_budgets() -> dict:
         return {}
 
 
+def _emit(session_id: str, event: str, data: str) -> None:
+    q = _progress_queues.get(session_id)
+    if q:
+        q.put(f"event: {event}\ndata: {data}\n\n")
+
+
 def _patch_dashboard_html(dash_path: Path) -> None:
     """Replace localhost Ollama references with the server-side proxy."""
     html = dash_path.read_text(encoding="utf-8")
@@ -124,12 +134,18 @@ def _patch_dashboard_html(dash_path: Path) -> None:
 
 
 def _run_pipeline(df, output_dir: Path, balance: float = 0.0,
-                  start: str = None, end: str = None) -> None:
+                  start: str = None, end: str = None,
+                  on_progress=None) -> None:
     """Transform, filter, analyze, and export a transaction DataFrame."""
     from src.transform import transform
     from src.analyze   import analyze
     from src.export    import export_csvs, generate_html_dashboard
 
+    def emit(msg):
+        if on_progress:
+            on_progress(msg)
+
+    emit("Categorizing transactions\u2026")
     df = transform(df)
 
     if start:
@@ -140,10 +156,34 @@ def _run_pipeline(df, output_dir: Path, balance: float = 0.0,
     if df.empty:
         raise ValueError("No transactions found in the selected date range.")
 
+    emit("Crunching the numbers\u2026")
     results = analyze(df, starting_balance=balance, budgets=_load_budgets())
+
+    emit("Building your dashboard\u2026")
     export_csvs(results, output_dir)
     generate_html_dashboard(results, output_dir / "dashboard.html")
     _patch_dashboard_html(output_dir / "dashboard.html")
+
+
+def _upload_thread(session_id: str, data_dir: Path, output_dir: Path,
+                   balance: float, start, end) -> None:
+    """Background worker: runs the full pipeline and emits SSE progress."""
+    def emit(msg):
+        _emit(session_id, "progress", msg)
+
+    try:
+        emit("Reading your files\u2026")
+        from src.ingest import load_directory
+        df = load_directory(data_dir)
+        _run_pipeline(df, output_dir, balance=balance, start=start, end=end,
+                      on_progress=emit)
+        _emit(session_id, "done", f"/dashboard/{session_id}")
+    except Exception as e:
+        shutil.rmtree(output_dir.parent, ignore_errors=True)
+        _emit(session_id, "error", str(e))
+    finally:
+        # Keep queue alive briefly so the SSE consumer can drain it
+        threading.Timer(60, lambda: _progress_queues.pop(session_id, None)).start()
 
 
 # ---------------------------------------------------------------------------
@@ -207,8 +247,7 @@ def demo():
 def upload():
     uploaded_files = request.files.getlist("csv_files")
     if not uploaded_files or all(f.filename == "" for f in uploaded_files):
-        return render_template("index.html", plaid_enabled=PLAID_ENABLED,
-                               error="Please select at least one CSV file.")
+        return _json_resp({"error": "Please select at least one CSV file."}, 400)
 
     session_id  = str(uuid.uuid4())
     session_dir = SESSIONS_DIR / session_id
@@ -217,40 +256,62 @@ def upload():
     data_dir.mkdir(parents=True)
     output_dir.mkdir(parents=True)
 
-    try:
-        saved_count = 0
-        for f in uploaded_files:
-            if f and f.filename and allowed_file(f.filename):
-                safe_name = secure_filename(f.filename)
-                if safe_name:
-                    f.save(data_dir / safe_name)
-                    saved_count += 1
+    saved_count = 0
+    for f in uploaded_files:
+        if f and f.filename and allowed_file(f.filename):
+            safe_name = secure_filename(f.filename)
+            if safe_name:
+                f.save(data_dir / safe_name)
+                saved_count += 1
 
-        if saved_count == 0:
-            raise ValueError("No valid .csv files were uploaded.")
-
-        from src.ingest import load_directory
-        df = load_directory(data_dir)
-
-        balance = 0.0
-        try:
-            balance = float(request.form.get("balance") or "0")
-        except ValueError:
-            pass
-
-        _run_pipeline(
-            df, output_dir,
-            balance=balance,
-            start=request.form.get("start") or None,
-            end=request.form.get("end")   or None,
-        )
-
-    except Exception as e:
+    if saved_count == 0:
         shutil.rmtree(session_dir, ignore_errors=True)
-        return render_template("index.html", plaid_enabled=PLAID_ENABLED,
-                               error=f"Processing failed: {e}")
+        return _json_resp({"error": "No valid .csv files were uploaded."}, 400)
 
-    return redirect(url_for("dashboard", session_id=session_id))
+    balance = 0.0
+    try:
+        balance = float(request.form.get("balance") or "0")
+    except ValueError:
+        pass
+
+    _progress_queues[session_id] = queue.Queue()
+    threading.Thread(
+        target=_upload_thread,
+        args=(session_id, data_dir, output_dir),
+        kwargs={
+            "balance": balance,
+            "start":   request.form.get("start") or None,
+            "end":     request.form.get("end")   or None,
+        },
+        daemon=True,
+    ).start()
+
+    return _json_resp({"session_id": session_id})
+
+
+@app.route("/progress/<session_id>")
+def progress_stream(session_id: str):
+    if not validate_session_id(session_id):
+        abort(404)
+    q = _progress_queues.get(session_id)
+    if q is None:
+        abort(404)
+
+    def generate():
+        while True:
+            try:
+                msg = q.get(timeout=60)
+                yield msg
+                if "event: done\n" in msg or "event: error\n" in msg:
+                    break
+            except queue.Empty:
+                yield ": keepalive\n\n"
+
+    return Response(
+        stream_with_context(generate()),
+        content_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
 
 
 @app.route("/dashboard/<session_id>")
