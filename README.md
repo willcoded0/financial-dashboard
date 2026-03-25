@@ -33,7 +33,7 @@ A local ETL pipeline that ingests personal bank CSV exports, categorizes transac
 ## Setup
 
 ```bash
-git clone https://github.com/yourname/financial-dashboard.git
+git clone https://github.com/willcoded0/financial-dashboard
 cd financial-dashboard
 python -m venv .venv
 source .venv/bin/activate        # Windows: .venv\Scripts\activate
